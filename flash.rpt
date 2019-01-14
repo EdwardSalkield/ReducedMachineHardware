@@ -1,0 +1,34 @@
+
+icetime topological timing analysis report
+==========================================
+
+Info: max_span_hack is enabled: estimate is conservative.
+
+Report for critical path:
+-------------------------
+
+        lc40_4_16_5 (LogicCell40) [clk] -> lcout: 0.640 ns
+     0.640 ns net_7891 (shift_in[0])
+        odrv_4_16_7891_1774 (Odrv12) I -> O: 0.540 ns
+        t41 (Sp12to4) I -> O: 0.449 ns
+        t40 (Span4Mux_v4) I -> O: 0.372 ns
+        t39 (LocalMux) I -> O: 0.330 ns
+        inmux_6_14_14026_14057 (InMux) I -> O: 0.260 ns
+        t19 (CascadeMux) I -> O: 0.000 ns
+        lc40_6_14_1 (LogicCell40) in2 -> lcout: 0.379 ns
+     2.969 ns net_11867 ($abc$688$n55)
+        odrv_6_14_11867_3863 (Odrv12) I -> O: 0.540 ns
+        t108 (LocalMux) I -> O: 0.330 ns
+        inmux_6_14_14018_14095 (CEMux) I -> O: 0.603 ns
+     4.441 ns net_14095 ($abc$688$n55)
+        lc40_6_14_3 (LogicCell40) ce [setup]: 0.000 ns
+     4.441 ns net_11869 (cpu.gywg.w_HS)
+
+Resolvable net names on path:
+     0.640 ns ..  2.590 ns shift_in[0]
+     2.969 ns ..  4.441 ns $abc$688$n55
+                  lcout -> cpu.gywg.w_HS
+
+Total number of logic levels: 2
+Total path delay: 4.44 ns (225.16 MHz)
+

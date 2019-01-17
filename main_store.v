@@ -26,13 +26,13 @@ endmodule
 
 
 module _ST #(parameter INSTR_BITS = 20, parameter INSTR_ADDR_BITS = 10)
-(input w_DPG, input write, input[INSTR_ADDR_BITS-1:0] b_MS_ADDR, input[INSTR_BITS-1:0] in_data, output[INSTR_BITS-1:0
+(input w_DPG, input w_XTB, input[INSTR_ADDR_BITS-1:0] b_MS_ADDR, input[INSTR_BITS-1:0] in_data, output[INSTR_BITS-1:0
 ] out_data);
 	reg [INSTR_BITS-1:0] memorySpace [0:2**INSTR_ADDR_BITS-1];
 	reg [INSTR_BITS-1:0] data_out_reg;
 
 	always @ (posedge w_DPG) begin
-		if (write) begin
+		if (w_XTB) begin
 			memorySpace[b_MS_ADDR] <= in_data;
 			data_out_reg <= in_data;
 		end

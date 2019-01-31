@@ -7,28 +7,44 @@ Info: max_span_hack is enabled: estimate is conservative.
 Report for critical path:
 -------------------------
 
-        lc40_4_16_5 (LogicCell40) [clk] -> lcout: 0.640 ns
-     0.640 ns net_7891 (shift_in[0])
-        odrv_4_16_7891_1774 (Odrv12) I -> O: 0.540 ns
-        t41 (Sp12to4) I -> O: 0.449 ns
-        t40 (Span4Mux_v4) I -> O: 0.372 ns
-        t39 (LocalMux) I -> O: 0.330 ns
-        inmux_6_14_14026_14057 (InMux) I -> O: 0.260 ns
-        t19 (CascadeMux) I -> O: 0.000 ns
-        lc40_6_14_1 (LogicCell40) in2 -> lcout: 0.379 ns
-     2.969 ns net_11867 ($abc$688$n55)
-        odrv_6_14_11867_3863 (Odrv12) I -> O: 0.540 ns
-        t108 (LocalMux) I -> O: 0.330 ns
-        inmux_6_14_14018_14095 (CEMux) I -> O: 0.603 ns
-     4.441 ns net_14095 ($abc$688$n55)
-        lc40_6_14_3 (LogicCell40) ce [setup]: 0.000 ns
-     4.441 ns net_11869 (cpu.gywg.w_HS)
+        lc40_8_11_4 (LogicCell40) [clk] -> lcout: 0.640 ns
+     0.640 ns net_15719 (cpu.acc.write_unit.counter[0])
+        t224 (LocalMux) I -> O: 0.330 ns
+        inmux_7_10_15661_15667 (InMux) I -> O: 0.260 ns
+        lc40_7_10_0 (LogicCell40) in1 -> carryout: 0.260 ns
+     1.489 ns t24
+        lc40_7_10_1 (LogicCell40) carryin -> carryout: 0.126 ns
+     1.615 ns net_15671 ($auto$alumacc.cc:470:replace_alu$278.C[2])
+        lc40_7_10_2 (LogicCell40) carryin -> carryout: 0.126 ns
+     1.741 ns net_15677 ($abc$1758$n102$2)
+        inmux_7_10_15677_15687 (InMux) I -> O: 0.260 ns
+        lc40_7_10_3 (LogicCell40) in3 -> lcout: 0.316 ns
+     2.316 ns net_13486 ($abc$1758$n102)
+        t196 (LocalMux) I -> O: 0.330 ns
+        inmux_7_11_15759_15816 (InMux) I -> O: 0.260 ns
+        lc40_7_11_4 (LogicCell40) in3 -> lcout: 0.316 ns
+     3.221 ns net_13610 ($abc$1758$n62)
+        t200 (LocalMux) I -> O: 0.330 ns
+        inmux_7_11_15760_15796 (InMux) I -> O: 0.260 ns
+        lc40_7_11_1 (LogicCell40) in1 -> lcout: 0.400 ns
+     4.210 ns net_13607 ($abc$1758$n29)
+        odrv_7_11_13607_14467 (Odrv12) I -> O: 0.540 ns
+        t204 (Span12Mux_h12) I -> O: 0.540 ns
+        t203 (LocalMux) I -> O: 0.330 ns
+        inmux_8_12_17990_18067 (CEMux) I -> O: 0.603 ns
+     6.223 ns net_18067 ($abc$1758$n29)
+        lc40_8_12_0 (LogicCell40) ce [setup]: 0.000 ns
+     6.223 ns net_15838 (cpu.acc.b_DATA_IN)
 
 Resolvable net names on path:
-     0.640 ns ..  2.590 ns shift_in[0]
-     2.969 ns ..  4.441 ns $abc$688$n55
-                  lcout -> cpu.gywg.w_HS
+     0.640 ns ..  1.229 ns cpu.acc.write_unit.counter[0]
+     1.615 ns ..  1.615 ns $auto$alumacc.cc:470:replace_alu$278.C[2]
+     1.741 ns ..  2.001 ns $abc$1758$n102$2
+     2.316 ns ..  2.905 ns $abc$1758$n102
+     3.221 ns ..  3.810 ns $abc$1758$n62
+     4.210 ns ..  6.223 ns $abc$1758$n29
+                  lcout -> cpu.acc.b_DATA_IN
 
-Total number of logic levels: 2
-Total path delay: 4.44 ns (225.16 MHz)
+Total number of logic levels: 7
+Total path delay: 6.22 ns (160.70 MHz)
 

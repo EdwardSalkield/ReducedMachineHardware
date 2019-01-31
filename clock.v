@@ -117,3 +117,7 @@ module _PPG #(parameter N = 20) (input dashclk, input bo, input reset, output [N
 	assign r_out = reset_out[0];
 endmodule
 
+
+module w_DPG (input w_CLK, output w_DPG);
+	assign w_DPG = ~w_CLK;
+endmodule

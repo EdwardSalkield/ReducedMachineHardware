@@ -44,7 +44,8 @@ endmodule
 
 
 module _MS #(parameter INSTR_BITS = 20, parameter INSTR_ADDR_BITS = 10, parameter FLYBACK_TIME = 4)
-(input [INSTR_ADDR_BITS-1:0] b_MS_ADDR, input w_XTB, input w_CLK, input w_MS_ZERO, input w_MS_DATA_IN, output w_MS_DATA_OUT, output [INSTR_BITS-1:0] datain, output [INSTR_BITS-1:0] datamem);
+(input [INSTR_ADDR_BITS-1:0] b_MS_ADDR, input w_XTB, input w_CLK, input w_MS_ZERO, input w_MS_DATA_IN, output w_MS_DATA_OUT);
+//(input [INSTR_ADDR_BITS-1:0] b_MS_ADDR, input w_XTB, input w_CLK, input w_MS_ZERO, input w_MS_DATA_IN, output w_MS_DATA_OUT, output [INSTR_BITS-1:0] datain, output [INSTR_BITS-1:0] datamem);
 
 	wire [INSTR_BITS-1:0] b_ST_DATA_IN;
 	wire [INSTR_BITS-1:0] b_ST_DATA_OUT;

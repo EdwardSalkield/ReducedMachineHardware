@@ -1,62 +1,64 @@
 // The clock circuitry
 
-// DV1 - divides the clock signal by 4
-module _DV1 (input i, output o);
+// DV1 - prescaler by 4
+module _DV1 (input w_CLK, output w_DV1);
 	reg [1:0] counter = 0;
 
-	always @ (negedge i) begin
+	always @ (posedge w_CLK) begin
 		counter <= counter + 1;
 	end
 
-	assign o = (counter == 0) & i;
-	assign ctr = counter;
+	assign w_DV1 = (counter == 0) & w_CLK;
 endmodule
 
 
-module _DV2 (input i, output o);
+// DV2 - prescaler by 6
+module _DV2 (input w_DV1, output w_DV2);
 	reg [2:0] counter = 0;
 
-	always @ (negedge i) begin
-		counter <= (counter == 6) ? 0 : counter + 1;
+	always @ (posedge w_DV1) begin
+		counter <= (counter == 5) ? 0 : counter + 1;
 	end
 
-	assign o = (counter == 0) & i;
-	assign ctr = counter;
+	assign w_DV2 = (counter == 0) & w_DV1;
 endmodule
 
 // Generates the "black out pulse" signal, during which the electron beams in
 // the CRTs would be in "flyback" to the next line
-module _BOPG (input i4, input i6, output q, output nq);
-	reg state = 1;
-	always @ (posedge i4) begin
-		state <= (i6 == 1);
+module _BOPG (input w_DV1, input w_DV2, output w_BO_WF, output w_PARA_BO_WF);
+	reg state = 0;
+	reg state2 = 0;
+
+	always @ (posedge ( (w_DV1 && w_DV2 && ~state) || (w_DV1 && ~w_DV2 && state) )) begin
+		state <= w_DV2 == 1;
+		state2 <= w_DV2 == 1;
 	end
 	
-	assign q = state;
-	assign nq = ~state;
+	assign w_BO_WF = state2;
+	assign w_PARA_BO_WF = ~state2;
 endmodule
 
 
 // Generates a signal to indicate when the main store ought to write
 // Would originally have generated a sawtooth analogue waveform to modulate
 // the scanning beam across the screen.
-module _XWG (input bo, output xtb);
-	assign xtb = bo;
+module _XWG (input w_BO_WF, output w_XTB);
+	assign w_XTB = w_BO_WF;
 endmodule
 
 
 // Halver waveform generator
 // Generates waveforms HA and HS, which are high during the action and scan
 // beats, respectively.
-module _HWG (input bo, output ha, output hs);
+module _HWG (input w_BO_WF, output w_HA_WF, output w_HS_WF);
 	reg state = 1;
 
-	always @ (posedge bo) begin
+	always @ (posedge w_BO_WF) begin
 		state <= ~state;
 	end
 
-	assign ha = state;
-	assign hs = ~state;
+	assign w_HA_WF = state;
+	assign w_HS_WF = ~state;
 endmodule
 
 // This implementation cannot clock against dashclk, reset_in, and ready due
@@ -83,41 +85,41 @@ module _P (input ready, input dashclk, input reset_in, input reset_out, output o
 endmodule
 
 
-module _PPG #(parameter N = 20) (input dashclk, input bo, input reset, output [N-1:0] ps, output r_out);
+module _PPG #(parameter LINE_LENGTH = 20) (input w_DPG, input w_BO_WF, input w_PARA_BO_WF, output [LINE_LENGTH-1:0] w_PX, output r_out);
 	genvar i;
 
 	// Wire clock
-	wire [N-1:0] dashclks;
-	wire [N-1:0] ready;
-	wire [N-1:0] out;
-	wire [N-1:0] reset_in;
-	wire [N-1:0] reset_out;
+	//wire [LINE_LENGTH-1:0] w_DPGs;
+	wire [LINE_LENGTH-1:0] ready;
+	wire [LINE_LENGTH-1:0] out;
+	wire [LINE_LENGTH-1:0] reset_in;
+	wire [LINE_LENGTH-1:0] reset_out;
 
 
 	// Wire readies
-	assign ready[0] = bo;
-	generate for (i=1; i<N; i=i+1) begin
+	assign ready[0] = w_BO_WF;
+	generate for (i=1; i<LINE_LENGTH; i=i+1) begin
 		assign ready[i] = out[i-1];
 	end endgenerate
 
 	// Wire resets
-	assign reset_in[N-1] = reset;	//works
-	generate for (i=0; i<N-1; i=i+1) begin
+	assign reset_in[LINE_LENGTH-1] = w_PARA_BO_WF;
+	generate for (i=0; i<LINE_LENGTH-1; i=i+1) begin
 		assign reset_in[i] = reset_out[i+1];
 	end endgenerate
 
 	//assign reset_in[0] = reset_out[1];
 
 	// Wire all P together
-	_P p [N-1:0] (ready, dashclk, reset_in, reset_out, out);
+	_P p [LINE_LENGTH-1:0] (ready, w_DPG, reset_in, reset_out, out);
 
-	generate for (i=0; i<N; i=i+1) begin
-		assign ps[i] = out[i];
+	generate for (i=0; i<LINE_LENGTH; i=i+1) begin
+		assign w_PX[i] = out[i];
 	end endgenerate
 	assign r_out = reset_out[0];
 endmodule
 
-
-module w_DPG (input w_CLK, output w_DPG);
+module _DPG (input w_CLK, output w_DPG);
 	assign w_DPG = ~w_CLK;
 endmodule
+

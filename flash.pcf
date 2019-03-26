@@ -1,31 +1,44 @@
 
-set_io OUT_R[0] 72
-set_io OUT_R[1] 69
-set_io OUT_R[2] 66
+# Interface to Raspberry Pi
+#  Inputs
+#   Typewriter data and clock
+set_io TPR_CLK 19
+set_io TPR_DATA 16	
 
-set_io OUT_C[0] 87
-set_io OUT_C[1] 85
-set_io OUT_C[2] 82
-set_io OUT_C[3] 80
-set_io OUT_C[4] 78
-set_io OUT_C[5] 73
-set_io OUT_C[6] 71
-set_io OUT_C[7] 68
+#   Staticisor switch data and clock
+set_io S_CLK 15
+set_io S_DATA 100
 
-set_io IND[0] 86
-set_io IND[1] 83
-set_io IND[2] 81
-set_io IND[3] 79
+#   Single switches
+set_io PS 97
+set_io KSP 95
+set_io SS 93
+set_io KLC 90
+set_io KSC 18
 
-set_io IN_R[0] 100
-set_io IN_R[1] 15
-set_io IN_R[2] 16
-set_io IN_R[3] 19
+#   Debug
+set_io CLK 91
 
-set_io IN_C[0] 90
-set_io IN_C[1] 93
-set_io IN_C[2] 95
-set_io IN_C[3] 97
+#  Outputs
+#   Stop Lamp
+set_io SL 12
 
-set_io CLK 13
+#   Display Tubes
+set_io DISP_CLK 99
+set_io DISP_DATA[0] 96
+set_io DISP_DATA[1] 94
+
+#   Debug
+set_io OSC 89
+
+# Interface to IceBlink components
+#set_io CLK 13
+set_io LEDS[0] 59
+set_io LEDS[1] 56
+set_io LEDS[2] 53
+set_io LEDS[3] 51
+#set_io BTNS[0] 60
+#set_io BTNS[1] 57
+#set_io BTNS[2] 54
+#set_io BTNS[3] 52
 

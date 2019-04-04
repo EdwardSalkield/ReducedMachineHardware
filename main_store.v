@@ -1,63 +1,81 @@
-module _WU #(parameter INSTR_BITS = 20, parameter FLYBACK_TIME = 4) (input w_MS_DATA_INSTR_BITS, input w_MS_LOOPBACK, input w_CLK, output [INSTR_BITS:0] b_ST_DATA_IN);
-	reg [$clog2(INSTR_BITS + FLYBACK_TIME):0] counter;
-	reg [INSTR_BITS-1:0] buffer;
+module _MS #(parameter LINE_LENGTH = 40, parameter INSTR_ADDR_BITS = 10, parameter TUBE_DEPTH = 32,
+	parameter N_TUBES = 2)
+	(input w_CLK, input ready_out, input ready_in, input [0:INSTR_ADDR_BITS-1] b_MS_ADDR, input w_HS,
+	input [0:LINE_LENGTH-1] b_MS_ZERO, input [0:LINE_LENGTH-1] b_MS_DATA_IN,
+	output [0:LINE_LENGTH-1] b_MS_DATA_OUT);
 
-	always @ (posedge w_CLK) begin
-		if (counter < INSTR_BITS)
-			buffer[counter] = w_MS_DATA_INSTR_BITS;
-		if (counter != 0) buffer[counter-1] = w_MS_LOOPBACK | buffer[counter-1];
-		counter = (counter == INSTR_BITS + FLYBACK_TIME - 1) ? 0 : counter + 1;
-	end
+	
+	reg [0:LINE_LENGTH-1] b_MS_DATA_OUT;
+	reg [LINE_LENGTH-1:0] b_TUBES [0:N_TUBES-1] [0:TUBE_DEPTH-1];	// Data within the tubes
+		// Little-endian to work with built-in for loops
 
-	assign b_ST_DATA_IN = buffer;
-endmodule
+	// Pointers to next data to be accessed
+	reg [0:$clog2(TUBE_DEPTH)] scan_addr;
+	integer n_bit, tube;
+	wire [0:4] tube_addr = b_MS_ADDR[0:4];
+	wire [0:4] word_addr = b_MS_ADDR[5:9];
 
+	always @(posedge w_CLK) begin
+		if (ready_out) begin
+			if (w_HS)
+				// During SCAN beats, output zero (since can't
+				// choose between arbitrary n tubes
+				for (n_bit=0; n_bit<LINE_LENGTH; n_bit=n_bit+1)
+					b_MS_DATA_OUT[n_bit] <= 0;
 
-module _RU #(parameter INSTR_BITS = 20, parameter FLYBACK_TIME = 4) (input [INSTR_BITS-1:0] b_ST_DATA_OUT, input w_MS_ZERO, input w_CLK, output w_MS_DATA_OUT);
-	reg [$clog2(INSTR_BITS + FLYBACK_TIME):0] counter = 0;
-	always @ (posedge w_CLK) begin
-		if (counter < INSTR_BITS)
-			w_MS_DATA_OUT <= (w_MS_ZERO) ? 0 : b_ST_DATA_OUT[counter];
-		else
-			w_MS_DATA_OUT <= 0;
-		counter <= (counter == INSTR_BITS + FLYBACK_TIME - 1) ? 0 : counter + 1;
-	end
-endmodule
+			else begin
+				// During ACTION beats, output specified data
+				for (n_bit=0; n_bit<LINE_LENGTH; n_bit=n_bit+1)
+					b_MS_DATA_OUT[n_bit] <= b_TUBES[tube_addr][word_addr][n_bit];
 
-
-module _ST #(parameter INSTR_BITS = 20, parameter INSTR_ADDR_BITS = 10)
-(input w_CLK, input w_XTB, input[INSTR_ADDR_BITS-1:0] b_MS_ADDR, input[INSTR_BITS-1:0] in_data, output[INSTR_BITS-1:0
-] out_data);
-	reg [INSTR_BITS-1:0] memorySpace [0:2**INSTR_ADDR_BITS-1];
-	reg [INSTR_BITS-1:0] data_out_reg;
-
-	always @ (posedge w_CLK) begin
-		if (w_XTB) begin
-			memorySpace[b_MS_ADDR] <= in_data;
-			data_out_reg <= in_data;
+			end
 		end
-		else data_out_reg <= memorySpace[b_MS_ADDR];
+
+		else if (ready_in) begin
+			if (w_HS) begin
+				// If zeroing, clear data in all tubes' scanpos position
+				for (tube=0; tube<N_TUBES; tube=tube+1)
+					for (n_bit=0; n_bit<LINE_LENGTH; n_bit=n_bit+1)
+						b_TUBES[tube][scan_addr][n_bit] <=
+							b_TUBES[tube][scan_addr][n_bit]
+							& !b_MS_ZERO[n_bit];
+
+				// Increment scan_addr "beam position"
+				scan_addr <= (scan_addr == TUBE_DEPTH - 1) ? 0 : scan_addr + 1;
+			end
+
+			else
+				// During ACTION beats, if zeroing, zero the requested line,
+				// and write the requested n_bits in
+				for (n_bit=0; n_bit<LINE_LENGTH; n_bit=n_bit+1)
+					b_TUBES[tube_addr][word_addr][n_bit] <=
+						b_MS_DATA_IN[n_bit]
+							| (b_TUBES[tube_addr][word_addr][n_bit]
+						&  !b_MS_ZERO[n_bit]);
+		end
 	end
 
-	assign out_data = data_out_reg;
+	
 endmodule
 
+module _A #(parameter LINE_LENGTH = 40, parameter INSTR_FUNCTION_BITS = 6, parameter INST_Z = 6'b100100)
+	(input w_CLK, input ready_out, input ready_in, input w_ACTION, input w_A_ZERO,
+	input [0:LINE_LENGTH-1] b_A_DATA_IN, input [0:INSTR_FUNCTION_BITS-1] b_FST_OUT,
+	output [0:LINE_LENGTH-1] b_A_DATA_OUT);
 
-module _MS #(parameter INSTR_BITS = 20, parameter INSTR_ADDR_BITS = 10, parameter FLYBACK_TIME = 4)
-(input [INSTR_ADDR_BITS-1:0] b_MS_ADDR, input w_XTB, input w_CLK, input w_MS_ZERO, input w_MS_DATA_IN, output w_MS_DATA_OUT);
-//(input [INSTR_ADDR_BITS-1:0] b_MS_ADDR, input w_XTB, input w_CLK, input w_MS_ZERO, input w_MS_DATA_IN, output w_MS_DATA_OUT, output [INSTR_BITS-1:0] datain, output [INSTR_BITS-1:0] datamem);
-
-	wire [INSTR_BITS-1:0] b_ST_DATA_IN;
-	wire [INSTR_BITS-1:0] b_ST_DATA_OUT;
-	wire w_MS_LOOPBACK;
+	reg [0:LINE_LENGTH-1] b_A_DATA_OUT;
+	reg [0:LINE_LENGTH-1] b_TUBE;	// Data within the tubes
 
 
-	_WU #(.INSTR_BITS(INSTR_BITS), .FLYBACK_TIME(FLYBACK_TIME)) write_unit (w_MS_DATA_IN, w_MS_LOOPBACK, w_CLK, b_ST_DATA_IN);
-	_ST #(.INSTR_BITS(INSTR_BITS), .INSTR_ADDR_BITS(INSTR_ADDR_BITS)) storage_tube
-		(w_CLK, w_XTB, b_MS_ADDR, b_ST_DATA_IN, b_ST_DATA_OUT);
-	_RU #(.INSTR_BITS(INSTR_BITS), .FLYBACK_TIME(FLYBACK_TIME)) read_unit (b_ST_DATA_OUT, w_MS_ZERO, w_CLK, w_MS_LOOPBACK);
+	always @(posedge w_CLK) begin
+		if (ready_out)
+			b_A_DATA_OUT <= (w_A_ZERO ? 0 : b_TUBE) - b_A_DATA_IN;
 
-	assign datain = b_ST_DATA_IN;
-	assign datamem = b_ST_DATA_OUT;
-	assign w_MS_DATA_OUT = w_MS_LOOPBACK;
+		else if (ready_in)
+			if (w_ACTION)
+				b_TUBE <= (b_FST_OUT == INST_Z) ? 0 : b_A_DATA_OUT;
+	end
+
+	
 endmodule
+

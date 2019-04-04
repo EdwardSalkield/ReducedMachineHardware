@@ -1,131 +1,121 @@
-module _PPU (input w_PPU_IN, input w_KSP, input w_HA, input w_CLK, output w_PP_WF);
-	reg triggered = 0;	// If triggered, releases a prepulse next bar
-	reg out;
+// Clock, outputs the halver waveforms
+module _CLK (input w_CLK, input ready, output w_HA, output w_HS);
+	reg w_HA = 0;
+	reg w_HS = 0;
 
-	always @ (negedge w_HA | w_CLK) begin
-		// Set
-		if (out == 0) begin
-			if (w_KSP | w_PPU_IN) begin
-				out <= 1;
+	always @(posedge w_CLK) if (ready) begin
+		w_HS <= ~w_HS;
+		w_HA <= w_HS;
+	end
+endmodule
+
+
+// Prepulse unit - releases a prepulse next bar if triggered
+module _PPU (input w_CLK, input ready, input w_PPU_retrig, input w_HA, input w_KSP, input w_PS, output w_PP_WF);
+	reg w_PP_WF = 0;
+	reg state_C0 = 1;
+	
+	always @(posedge w_CLK) begin
+		if (ready) begin
+			if (~w_HA) begin
+				// Only output every other SCAN beat
+				state_C0 <= ~state_C0;
+				
+				// If w_PS low, release a prepulse only when
+				// KSP operated
+				if (w_PS) w_PP_WF <= (w_KSP | w_PPU_retrig) & state_C0;
+				else w_PP_WF <= w_KSP & state_C0;
+			end else w_PP_WF <= 0;
+		end
+	end
+endmodule
+
+
+// Stop unit - 
+module _SU #(parameter INST_HLT = 6'b000000, parameter INSTR_FUNCTION_BITS = 6)
+	(input w_CLK, input ready, input w_PP_WF, input [0:INSTR_FUNCTION_BITS-1] b_FST, output w_PPU_retrig);
+	reg w_PPU_retrig = 0;
+
+	always @(posedge w_CLK) if (ready) begin
+		// Retrigger the prepulse
+		if (w_PP_WF)
+			w_PPU_retrig <= 1;
+		// Halt on command
+		if (b_FST == INST_HLT)
+			w_PPU_retrig <= 0;
+	end
+endmodule
+
+
+// Instruction Gate and Control Logic Y-Plate Generator
+module _GYWG (input w_CLK, input ready, input ready2, input w_HS, input w_HA, input w_PP_WF,
+	output w_S1, output w_CL_YPLATE, output w_INSTR_GATE, output w_ACTION_TRIGGER_AUTO,
+	output w_ACTION_TRIGGER_MAN);
+	
+	reg w_S1 = 0;
+	reg w_PARA_S1 = 0;
+	reg w_CL_YPLATE = 0;
+	reg w_PARA_CL_YPLATE = 0;
+	reg w_ACTION_TRIGGER_AUTO;
+	reg w_ACTION_TRIGGER_MAN;
+
+	reg active_bar = 0;
+	reg scan = 0;
+	reg manual_state = 0;
+
+	reg w_INSTR_GATE = 0;
+
+	always @(posedge w_CLK) begin
+		
+		if (ready) begin
+			// Set w_S1
+			if (w_PP_WF) begin
+				active_bar <= 1;
+				w_S1 <= 1;
+				w_PARA_S1 <= 0;
+			end else begin
+				w_S1 <= 0;
+				w_PARA_S1 <= 1;
+			end
+
+			// Set w_CL_YPLATE
+			if (w_S1) begin
+				w_CL_YPLATE <= 1;
+				w_PARA_CL_YPLATE <= 0;
+			end else if (w_HA) begin
+				w_CL_YPLATE <= 0;
+				w_PARA_CL_YPLATE <= 1;
+			end
+
+			if (w_HS) begin
+				scan <= ~scan;
+				w_ACTION_TRIGGER_AUTO <= 0;
+				w_ACTION_TRIGGER_MAN <= 0;
+			end
+
+			// Set Action Triggers
+			if (w_HA) begin
+				if (~scan)
+					active_bar <= 0;
+
+				if (active_bar) begin
+					w_ACTION_TRIGGER_AUTO <= 1;
+					manual_state <= ~manual_state;
+					w_ACTION_TRIGGER_MAN <= manual_state;
+				end
 			end
 		end
-
-		// Reset
-		else begin
-			out <= 0;
+		else if (ready2) begin
+			w_INSTR_GATE <= w_HA | (w_PARA_S1 & w_PARA_CL_YPLATE);
 		end
 
+
 	end
-	
-	assign w_PP_WF = ~out;
 endmodule
 
 
-module _SU (input w_PP_WF, input w_1_13, input w_1_14, input w_1_15, output w_SU_OUT, output w_STOP_LAMP);
-	reg running = 0;
-	
-	always @ (negedge w_PP_WF or posedge w_1_13 & w_1_14 & w_1_15) begin
-		if (~w_PP_WF) begin
-			running <= 1;
-		end
-		else
-			running <= 0;
-	end
-
-	assign w_SU_OUT = running;
-	assign w_STOP_LAMP = ~running;
-endmodule
-
-
-module _AWG (input w_HA, input w_ACTION_TRIGGER, output w_ACTION_WF, output w_PARA_ACTION_WF);
-	reg trigger;
-
-	always @ (negedge w_ACTION_TRIGGER & w_HA) begin
-		trigger <= ~w_ACTION_TRIGGER;
-	end
-	
-	assign w_ACTION_WF = trigger;
-	assign w_PARA_ACTION_WF = ~trigger;
-endmodule
-
-module test (input w_CLK, output w_1, output w_2);
-	reg state1;
-	reg state2;
-
-	always @ (posedge w_CLK) begin
-		state1 <= ~state1;
-	end
-
-	always @ (posedge w_CLK) begin
-		state2 <= ~state2;
-	end
-
-	assign w_1 = state1;
-	assign w_2 = state2;
-endmodule
-
-
-module _GYWG (input w_HA, input w_HS, input w_PP_WF, input w_CLK, output w_CL_YPLATE, output w_INSTR_GATE, output w_ACTION_TRIGGER_AUTO, output w_ACTION_TRIGGER_MAN, output test);
-	reg trigger1;
-	reg trigger2;
-	wire w_S1;
-	wire w_PARA_S1;
-
-	always @ (negedge w_PP_WF & w_HS) begin
-		trigger1 <= ~w_PP_WF;
-	end
-
-	assign w_S1 = trigger1;
-	assign w_PARA_S1 = ~trigger1;
-	assign test = w_S1;
-
-	always @ (negedge w_S1 | w_HS) begin
-		trigger2 <= ~trigger2;
-	end
-
-
-	assign w_CL_YPLATE = trigger2;
-	assign w_CL_PARA_YPLATE = ~trigger2;
-
-	reg gate;
-	assign gate = w_HA | (w_PARA_S1 & w_PARA_CL_YPLATE);
-	assign w_INSTR_GATE = gate;
-
-	reg trigger_man;
-	reg trigger_auto;
-	
-	reg man_pulses = 1;
-
-	always @ (negedge w_CLK) begin
-		if (w_CL_PARA_YPLATE & man_pulses == 0) begin
-			trigger_man <= 1;
-			man_pulses <= 1;
-		end
-		else if (man_pulses == 1) begin
-			trigger_man <= 0;
-		end
-
-		if (w_CL_YPLATE) begin
-			man_pulses <= 0;
-		end
-
-	end
-
-	reg auto_pulses = 0;
-	always @ (negedge w_CLK) begin
-		if (w_CL_YPLATE & auto_pulses == 0) begin
-			trigger_auto <= 1;
-			auto_pulses <= 1;
-		end
-		else if (auto_pulses == 1) begin
-			trigger_auto <= 0;
-		end
-
-		if (w_CL_PARA_YPLATE) begin
-			auto_pulses <= 0;
-		end
-	end
-
-	assign w_ACTION_TRIGGER_MAN = trigger_man;
-	assign w_ACTION_TRIGGER_AUTO = trigger_man | trigger_auto;
+// AWG - Action Waveform Generator
+// Generates the para action waveform from the main one
+module _AWG (input w_ACTION, output w_PARA_ACTION);
+	assign w_PARA_ACTION = ~w_ACTION;
 endmodule

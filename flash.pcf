@@ -15,6 +15,8 @@ set_io KSP 95
 set_io SS 93
 set_io KLC 90
 set_io KSC 18
+set_io WE 89
+set_io KCC 99
 
 #   Debug
 set_io CLK 91
@@ -24,12 +26,12 @@ set_io CLK 91
 set_io SL 12
 
 #   Display Tubes
-set_io DISP_CLK 99
+#set_io DISP_CLK 99
 set_io DISP_DATA[0] 96
 set_io DISP_DATA[1] 94
 
 #   Debug
-set_io OSC 89
+set_io OSC 87
 
 # Interface to IceBlink components
 #set_io CLK 13

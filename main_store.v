@@ -58,22 +58,44 @@ module _MS #(parameter LINE_LENGTH = 40, parameter INSTR_ADDR_BITS = 10, paramet
 	
 endmodule
 
-module _A #(parameter LINE_LENGTH = 40, parameter INSTR_FUNCTION_BITS = 6, parameter INST_Z = 6'b100100)
+module _A #(parameter LINE_LENGTH = 40, parameter INSTR_FUNCTION_BITS = 6,
+	parameter INST_CMP = 6'b000101, parameter INST_JMP = 6'b001101, parameter INST_STA = 6'b010100,
+	parameter INST_HLT = 6'b111111,
+	parameter INST_ADD = 6'b101100, parameter INST_SHR = 6'b111110, parameter INST_LDA = 6'b100000)
 	(input w_CLK, input ready_out, input ready_in, input w_ACTION, input w_A_ZERO,
 	input [0:LINE_LENGTH-1] b_A_DATA_IN, input [0:INSTR_FUNCTION_BITS-1] b_FST_OUT,
-	output [0:LINE_LENGTH-1] b_A_DATA_OUT);
+	output [0:LINE_LENGTH-1] b_A_DATA_OUT, output [0:LINE_LENGTH-1] b_TUBE);
 
 	reg [0:LINE_LENGTH-1] b_A_DATA_OUT;
 	reg [0:LINE_LENGTH-1] b_TUBE;	// Data within the tubes
 
+	// Asynchronous circuitry
+	wire write_unit_block = (b_FST_OUT == INST_JMP | b_FST_OUT == INST_HLT);
+	wire add_condition = b_FST_OUT == INST_ADD | b_FST_OUT == INST_SHR | b_FST_OUT == INST_LDA;
+	wire [0:LINE_LENGTH-1] read_unit_out;
+	wire [0:LINE_LENGTH-1] subtract_unit_out;
+
+	genvar i;
+	generate for (i=0; i<LINE_LENGTH; i=i+1) begin
+		assign read_unit_out[i] = (w_A_ZERO | write_unit_block ? 0 : b_TUBE[i]);
+	end endgenerate
+
+	assign subtract_unit_out[0:LINE_LENGTH-1] = add_condition ? read_unit_out[LINE_LENGTH-1:0] + b_A_DATA_IN[LINE_LENGTH-1:0]
+		: read_unit_out[LINE_LENGTH-1:0] - b_A_DATA_IN[LINE_LENGTH-1:0];	// TODO: Two's complement subtraction
+
 
 	always @(posedge w_CLK) begin
 		if (ready_out)
-			b_A_DATA_OUT <= (w_A_ZERO ? 0 : b_TUBE) - b_A_DATA_IN;
+			// Apply bit shift
+			b_A_DATA_OUT <= (b_FST_OUT == INST_SHR) ? subtract_unit_out >> 1
+			: subtract_unit_out;
 
 		else if (ready_in)
-			if (w_ACTION)
-				b_TUBE <= (b_FST_OUT == INST_Z) ? 0 : b_A_DATA_OUT;
+			//if (w_ACTION)
+			// Test if writing to A
+			if (!write_unit_block)
+				b_TUBE <= b_A_DATA_OUT;
+
 	end
 
 	

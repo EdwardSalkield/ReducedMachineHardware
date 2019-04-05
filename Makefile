@@ -10,7 +10,7 @@ all: $(PROJ).rpt $(PROJ).bin
 	yosys -p 'synth_ice40 -top top -blif $@' $<
 
 %.asc: $(PIN_DEF) %.blif
-	arachne-pnr -d $(subst hx,,$(subst lp,,$(DEVICE))) -o $@ -p $^ -P vq100
+	arachne-pnr -r -d $(subst hx,,$(subst lp,,$(DEVICE))) -o $@ -p $^ -P vq100
 
 %.bin: %.asc
 	icepack $< $@

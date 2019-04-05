@@ -32,7 +32,7 @@ endmodule
 
 
 // Stop unit - 
-module _SU #(parameter INST_HLT = 6'b000000, parameter INSTR_FUNCTION_BITS = 6)
+module _SU #(parameter INST_HLT = 6'b111111, parameter INSTR_FUNCTION_BITS = 6)
 	(input w_CLK, input ready, input w_PP_WF, input [0:INSTR_FUNCTION_BITS-1] b_FST, output w_PPU_retrig);
 	reg w_PPU_retrig = 0;
 

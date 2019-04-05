@@ -7,13 +7,14 @@
 
 module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, parameter PAGE_SIZE = 32,
 	parameter PAGES_PER_TUBE = 2, parameter S_TUBES = 2, parameter n_OSC = 1)
-	(input w_CLK, input [0:LINE_LENGTH-1] b_TPR_DATA_OUT, input [WORD_LENGTH-1:0] b_S, input w_PS,
+	(input w_CLK, input [0:LINE_LENGTH-1] b_TPR_DATA_OUT, input [0:WORD_LENGTH-1] b_S, input w_PS,
 	input w_KSP, input w_SS, input w_KLC, input w_KSC, input w_WE, input w_KCC,
 	output w_SL, output [S_TUBES-1:0] DISP_DATA, output [3:0] LEDS, output [n_OSC-1:0] b_OSC);
 
 	// Global parameters
 	
 	// Instruction set
+	parameter INST_NOP = 6'b000000;
 	parameter INST_CMP = 6'b000101;
 	parameter INST_JMP = 6'b001101;
 	parameter INST_STA = 6'b010100;
@@ -86,8 +87,8 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 	_switch SS2b (w_SS, ~w_HA, w_IG_out, w_SX_in);
 
 	// Sx - Select manual bits to insert into the staticisors
-	wire [INSTR_BITS-1:0] b_STAT_in;
-	_switch SX [INSTR_BITS-1:0] (b_S, ZERO, w_SX_in, b_STAT_in);
+	wire [0:INSTR_BITS-1] b_STAT_in;
+	_switch SX [0:INSTR_BITS-1] (b_S, ZERO, w_SX_in, b_STAT_in);
 
 
 	// Staticisor units
@@ -144,7 +145,7 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 	// Main store
 	reg [0:LINE_LENGTH-1] b_MS_DATA_OUT;
 	_MS #(.LINE_LENGTH(LINE_LENGTH), .INSTR_ADDR_BITS(INSTR_ADDR_BITS), .TUBE_DEPTH(TUBE_DEPTH),
-		.N_TUBES(N_TUBES)) MS (w_CLK, b_CONTROLLER[5], b_CONTROLLER[6], b_MS_ADDR, w_HS,
+		.N_TUBES(N_TUBES)) MS (w_CLK, b_CONTROLLER[5], b_CONTROLLER[7], b_MS_ADDR, w_HS,
 		b_MS_ZERO, b_MS_DATA_IN,
 		b_MS_DATA_OUT);
 
@@ -152,14 +153,14 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 	// OTG - Outward Transfer Gate
 	wire [0:LINE_LENGTH-1] b_A_DATA_IN;
 	_OTG #(.INSTR_FUNCTION_BITS(INSTR_FUNCTION_BITS),
-		.INST_CMP(INST_CMP), .INST_JMP(INST_JMP), .INST_LDA(INST_LDA), .INST_ADD(INST_ADD),
-		.INST_SUB(INST_SUB), .INST_NEG(INST_NEG), .INST_SHR(INST_SHR), .LINE_LENGTH(LINE_LENGTH))
-		OTG (b_MS_DATA_OUT, b_A_DATA_IN);
-
+		.INST_LDA(INST_LDA), .INST_ADD(INST_ADD), .INST_SUB(INST_SUB),
+		.INST_NEG(INST_NEG), .INST_SHR(INST_SHR),
+		.LINE_LENGTH(LINE_LENGTH))
+		OTG (b_MS_DATA_OUT, b_FST_OUT, w_PARA_ACTION, b_A_DATA_IN);
 
 	// ACEG - Accumulator and Control Logic Erase Waveform Generator
 	wire w_ACEG;
-	_ACEG #(.INST_JMP(INST_JMP), .INST_Z(INST_Z), .INST_NEG(INST_NEG), .INST_SHR(INST_SHR)) ACEG
+	_ACEG #(.INST_JMP(INST_JMP), .INST_LDA(INST_LDA), .INST_Z(INST_Z), .INST_NEG(INST_NEG), .INST_SHR(INST_SHR), .INST_HLT(INST_HLT)) ACEG
 		(w_PARA_ACTION, b_FST_OUT,
 		w_ACEG);
 	
@@ -167,17 +168,21 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 	wire w_A_ZERO;
 	_switch KCC (w_KCC, w_ACEG, ONE, w_A_ZERO);
 
+
 	// A - Accumulator
-	wire [0:LINE_LENGTH-1] b_A_DATA_OUT;
-	_A #(.LINE_LENGTH(LINE_LENGTH), .INSTR_FUNCTION_BITS(INSTR_FUNCTION_BITS), .INST_Z(INST_Z)) A
-	(w_CLK, b_CONTROLLER[5], b_CONTROLLER[6], w_ACTION, w_A_ZERO, b_A_DATA_IN, b_FST_OUT,
-	b_A_DATA_OUT);
+	reg [0:LINE_LENGTH-1] b_TUBE;
+	_A #(.LINE_LENGTH(LINE_LENGTH), .INSTR_FUNCTION_BITS(INSTR_FUNCTION_BITS),
+		.INST_CMP(INST_CMP), .INST_JMP(INST_JMP), .INST_STA(INST_STA), .INST_HLT(INST_HLT),
+		.INST_ADD(INST_ADD), .INST_SHR(INST_SHR), .INST_LDA(INST_LDA)) A
+		(w_CLK, b_CONTROLLER[6], b_CONTROLLER[7], w_ACTION, w_A_ZERO, b_A_DATA_IN, b_FST_OUT,
+		b_A_DATA_OUT, b_TUBE);
 
 
 	// Outputs
-	assign w_SL = ~w_PPU_retrig;
+	//assign w_SL = ~w_PPU_retrig;
+	//reg w_SL_internal = ~w_PPU_retrig;
 
-	assign b_OSC[0] = w_CLK;
+	assign b_OSC[0] = 1;
 	assign b_OSC[1] = w_HS;
 	assign b_OSC[2] = w_HA;
 	assign b_OSC[3] = w_PP_WF;
@@ -189,7 +194,7 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 	assign b_OSC[9] = w_ACTION_MAN;
 	assign b_OSC[10] = w_ACTION;
 	assign b_OSC[11] = w_PARA_ACTION;
-	assign b_OSC[12] = w_SL;
+	assign b_OSC[12] = ~w_PPU_retrig;
 
 	//assign b_OSC[13:22] = b_TPR_DATA_OUT[0:9];
 	//assign b_OSC[23:32] = b_ITG_DATA_IN[0:9];
@@ -199,23 +204,60 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 	assign b_OSC[15] = b_MS_DATA_OUT[2];
 	assign b_OSC[16] = b_MS_DATA_OUT[3];
 	assign b_OSC[17] = b_MS_DATA_OUT[4];
-	assign b_OSC[18] = b_MS_DATA_OUT[5];
-	assign b_OSC[19] = b_MS_DATA_OUT[6];
-	assign b_OSC[20] = b_MS_DATA_OUT[7];
-	assign b_OSC[21] = b_MS_DATA_OUT[8];
-	assign b_OSC[22] = b_MS_DATA_OUT[9];
 
-	assign b_OSC[23] = b_MS_DATA_IN[0];
-	assign b_OSC[24] = b_MS_DATA_IN[1];
-	assign b_OSC[25] = b_MS_DATA_IN[2];
-	assign b_OSC[26] = b_MS_DATA_IN[3];
-	assign b_OSC[27] = b_MS_DATA_IN[4];
-	assign b_OSC[28] = b_MS_DATA_IN[5];
-	assign b_OSC[29] = b_MS_DATA_IN[6];
-	assign b_OSC[30] = b_MS_DATA_IN[7];
-	assign b_OSC[31] = b_MS_DATA_IN[8];
-	assign b_OSC[32] = b_MS_DATA_IN[9];
+	assign b_OSC[18] = b_MS_DATA_IN[0];
+	assign b_OSC[19] = b_MS_DATA_IN[1];
+	assign b_OSC[20] = b_MS_DATA_IN[2];
+	assign b_OSC[21] = b_MS_DATA_IN[3];
+	assign b_OSC[22] = b_MS_DATA_IN[4];
 
+	/*
+	assign b_OSC[23] = b_STAT_in[14];
+	assign b_OSC[24] = b_STAT_in[15];
+	assign b_OSC[25] = b_STAT_in[16];
+	assign b_OSC[26] = b_STAT_in[17];
+	assign b_OSC[27] = b_STAT_in[18];
+	assign b_OSC[28] = b_STAT_in[19];
+	*/
+
+	
+	assign b_OSC[23] = b_FST_OUT[0];
+	assign b_OSC[24] = b_FST_OUT[1];
+	assign b_OSC[25] = b_FST_OUT[2];
+	assign b_OSC[26] = b_FST_OUT[3];
+	assign b_OSC[27] = b_FST_OUT[4];
+	assign b_OSC[28] = b_FST_OUT[5];
+	
+
+	assign b_OSC[29] = w_A_ZERO;
+	assign b_OSC[30] = b_A_DATA_IN[0];
+	assign b_OSC[31] = b_A_DATA_IN[1];
+	assign b_OSC[32] = b_A_DATA_IN[2];
+	assign b_OSC[33] = b_A_DATA_IN[3];
+	assign b_OSC[34] = b_A_DATA_IN[4];
+	
+	/*
+	assign b_OSC[35] = subtract_unit_out[0];
+	assign b_OSC[36] = subtract_unit_out[1];
+	assign b_OSC[37] = subtract_unit_out[2];
+	assign b_OSC[38] = subtract_unit_out[3];
+	assign b_OSC[39] = subtract_unit_out[4];
+	*/
+
+
+	assign b_OSC[35] = b_A_DATA_OUT[0];
+	assign b_OSC[36] = b_A_DATA_OUT[1];
+	assign b_OSC[37] = b_A_DATA_OUT[2];
+	assign b_OSC[38] = b_A_DATA_OUT[3];
+	assign b_OSC[39] = b_A_DATA_OUT[4];
+
+	assign b_OSC[40] = b_TUBE[0];
+	assign b_OSC[41] = b_TUBE[1];
+	assign b_OSC[42] = b_TUBE[2];
+	assign b_OSC[43] = b_TUBE[3];
+	assign b_OSC[44] = b_TUBE[4];
+
+	/*
 	assign b_OSC[33] = b_ITG_SWITCH[0];
 	assign b_OSC[34] = b_MS_ZERO[0];
 	assign b_OSC[35] = b_TPR_SE[0];
@@ -223,13 +265,6 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 	assign b_OSC[37] = b_SE[0];
 	assign b_OSC[38] = w_KSC;
 	assign b_OSC[39] = w_WE;
-
-	//assign b_OSC[33:42] = b_MS_ADDR[0:9];
-
-	//assign b_OSC[13] = b_TPR_DATA_OUT[0];
-	//assign b_OSC[13:32] = b_TPR_DATA_OUT[19:0];
-
-	//assign b_OSC[13:22] = b_MS_ADDR[0:9];
-	//assign b_OSC[27:32] = b_FST_OUT[0:5];
+	*/
 
 endmodule

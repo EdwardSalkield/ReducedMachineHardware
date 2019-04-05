@@ -6,13 +6,13 @@ module top (input CLK, input TPR_CLK, input TPR_DATA, input S_CLK, input S_DATA,
 	input SS, input KLC, input KSC, input WE, input KCC,
 	output SL, /*output DISP_CLK,*/ output [1:0] DISP_DATA, output [3:0] LEDS, output OSC);
 
-	parameter LINE_LENGTH = 40;
+	parameter LINE_LENGTH = 20;	// Reduced for FPGA synthesis reasons
 	parameter WORD_LENGTH = 20;
 	parameter PAGE_SIZE = 32;
 	parameter PAGES_PER_TUBE = 2;
 	parameter S_TUBES = 2;
 	parameter OSC_driven = 1;	// Whether the oscilloscope is on
-	parameter n_OSC = 40;		//The number of lines driven by the oscilloscope
+	parameter n_OSC = 45;		//The number of lines driven by the oscilloscope
 
 	//assign LEDS[0] = CLK;
 
@@ -30,7 +30,7 @@ module top (input CLK, input TPR_CLK, input TPR_DATA, input S_CLK, input S_DATA,
 
 	// Staticisor switch prescaler and decoder
 	reg [$clog2(WORD_LENGTH):0] S_counter = 0;
-	reg [WORD_LENGTH-1:0] S;
+	reg [0:WORD_LENGTH-1] S;
 
 	// Maybe need initial begin for this buffer
 
@@ -47,6 +47,7 @@ module top (input CLK, input TPR_CLK, input TPR_DATA, input S_CLK, input S_DATA,
 	reg [$clog2(n_OSC+1):0] OSC_counter;
 	reg [n_OSC-1:0] b_OSC;
 	reg OSC_out;
+
 
 	//assign b_OSC[0] = 0;
 	//assign b_OSC[1] = 1;
@@ -67,10 +68,11 @@ module top (input CLK, input TPR_CLK, input TPR_DATA, input S_CLK, input S_DATA,
 		assign actual_clock = CLK;
 	end
 
+	reg test_reg;
 	//assign LEDS[0] = OSC_out;
 	//assign LEDS[1] = OSC_counter[0];
-	assign LEDS[2] = OSC_counter[1];
-	assign LEDS[3] = OSC_counter[2];
+	assign LEDS[2] = OSC_counter[2];
+	assign LEDS[3] = WE;
 			
 	assign OSC = OSC_out;
 

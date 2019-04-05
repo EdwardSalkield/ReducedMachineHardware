@@ -52,42 +52,47 @@ endmodule
 
 
 // ACEG - Accumulator and Control Logic Erase Waveform Generator
-module _ACEG #(parameter INST_JMP = 6'b000101, parameter INST_Z = 6'b100100,
-	parameter INST_NEG = 6'b110110, parameter INST_SHR = 6'b111110,
+module _ACEG #( parameter INST_JMP = 6'b000101, parameter INST_LDA = 6'b100000,
+	parameter INST_Z = 6'b100100, parameter INST_NEG = 6'b110110,
+	parameter INST_SHR = 6'b111110, parameter INST_HLT = 6'b111111,
 	parameter INSTR_FUNCTION_BITS = 6)
 	(input w_PARA_ACTION, input [0:INSTR_FUNCTION_BITS-1] b_FST,
 	output w_ACEG);
 	
-	assign w_ACEG = w_PARA_ACTION &
+	assign w_ACEG = ~w_PARA_ACTION &
 			(b_FST == INST_JMP |
+			b_FST == INST_LDA |
 			b_FST == INST_Z | 
 			b_FST == INST_NEG | 
-			b_FST == INST_SHR);
+			b_FST == INST_SHR |
+			b_FST == INST_HLT);
 endmodule
 	
 
 // OTG -  Outward Transfer Gate
 // Controls the flow of data from the Main Store
-module _OTG #(parameter INSTR_FUNCTION_BITS = 6, parameter INST_CMP = 6'b000101,
-	parameter INST_JMP = 6'b001101, parameter INST_LDA = 6'b100000, parameter INST_ADD = 6'b101100,
-	parameter INST_SUB = 6'b100110, parameter INST_NEG = 6'b110110, parameter INST_SHR = 6'b111110,
+module _OTG #(parameter INSTR_FUNCTION_BITS = 6,
+	parameter INST_LDA = 6'b100000, parameter INST_ADD = 6'b101100, parameter INST_SUB = 6'b100110,
+	parameter INST_NEG = 6'b110110, parameter INST_SHR = 6'b111110,
 	parameter LINE_LENGTH = 40)
-	(input [0:LINE_LENGTH-1] b_MS_DATA_OUT, output [0:LINE_LENGTH-1] b_A_DATA_IN);
+	(input [0:LINE_LENGTH-1] b_MS_DATA_OUT, input [0:INSTR_FUNCTION_BITS-1] b_FST,
+	input w_PARA_ACTION,
+	output [0:LINE_LENGTH-1] b_A_DATA_IN);
 
 	genvar i;
 	generate for (i=0; i<LINE_LENGTH; i=i+1)
-		assign b_A_DATA_IN = b_MS_DATA_OUT &
-			(b_FST == INST_CMP |
-			b_FST == INST_JMP |
-			b_FST == INST_LDA |
+		assign b_A_DATA_IN[i] = b_MS_DATA_OUT[i] & ~w_PARA_ACTION &
+			(b_FST == INST_LDA |
 			b_FST == INST_ADD |
 			b_FST == INST_SUB |
 			b_FST == INST_NEG |
 			b_FST == INST_SHR);
 	endgenerate
 endmodule
-					
 
+
+// TU - Test Unit
+// Instructs CL 
 
 /*
 

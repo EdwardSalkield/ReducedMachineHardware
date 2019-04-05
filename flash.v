@@ -12,7 +12,7 @@ module top (input CLK, input TPR_CLK, input TPR_DATA, input S_CLK, input S_DATA,
 	parameter PAGES_PER_TUBE = 2;
 	parameter S_TUBES = 2;
 	parameter OSC_driven = 1;	// Whether the oscilloscope is on
-	parameter n_OSC = 45;		//The number of lines driven by the oscilloscope
+	parameter n_OSC =  50;		//The number of lines driven by the oscilloscope
 
 	//assign LEDS[0] = CLK;
 

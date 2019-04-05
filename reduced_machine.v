@@ -144,10 +144,12 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 
 	// Main store
 	reg [0:LINE_LENGTH-1] b_MS_DATA_OUT;
+	reg [0:4] tube_addr;
+	reg [0:4] word_addr;
 	_MS #(.LINE_LENGTH(LINE_LENGTH), .INSTR_ADDR_BITS(INSTR_ADDR_BITS), .TUBE_DEPTH(TUBE_DEPTH),
 		.N_TUBES(N_TUBES)) MS (w_CLK, b_CONTROLLER[5], b_CONTROLLER[7], b_MS_ADDR, w_HS,
 		b_MS_ZERO, b_MS_DATA_IN,
-		b_MS_DATA_OUT);
+		b_MS_DATA_OUT, tube_addr, word_addr);
 
 
 	// OTG - Outward Transfer Gate
@@ -171,11 +173,12 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 
 	// A - Accumulator
 	reg [0:LINE_LENGTH-1] b_TUBE;
+	reg [0:LINE_LENGTH-1] subtract_unit_out;
 	_A #(.LINE_LENGTH(LINE_LENGTH), .INSTR_FUNCTION_BITS(INSTR_FUNCTION_BITS),
 		.INST_CMP(INST_CMP), .INST_JMP(INST_JMP), .INST_STA(INST_STA), .INST_HLT(INST_HLT),
 		.INST_ADD(INST_ADD), .INST_SHR(INST_SHR), .INST_LDA(INST_LDA)) A
 		(w_CLK, b_CONTROLLER[6], b_CONTROLLER[7], w_ACTION, w_A_ZERO, b_A_DATA_IN, b_FST_OUT,
-		b_A_DATA_OUT, b_TUBE);
+		b_A_DATA_OUT, b_TUBE, subtract_unit_out);
 
 
 	// Outputs
@@ -251,11 +254,18 @@ module TESTBENCH #(parameter LINE_LENGTH = 40, parameter WORD_LENGTH = 20, param
 	assign b_OSC[38] = b_A_DATA_OUT[3];
 	assign b_OSC[39] = b_A_DATA_OUT[4];
 
-	assign b_OSC[40] = b_TUBE[0];
-	assign b_OSC[41] = b_TUBE[1];
-	assign b_OSC[42] = b_TUBE[2];
-	assign b_OSC[43] = b_TUBE[3];
-	assign b_OSC[44] = b_TUBE[4];
+	assign b_OSC[40] = word_addr[0];
+	assign b_OSC[41] = word_addr[1];
+	assign b_OSC[42] = word_addr[2];
+	assign b_OSC[43] = word_addr[3];
+	assign b_OSC[44] = word_addr[4];
+
+
+	assign b_OSC[45] = tube_addr[0];
+	assign b_OSC[46] = tube_addr[1];
+	assign b_OSC[47] = tube_addr[2];
+	assign b_OSC[48] = tube_addr[3];
+	assign b_OSC[49] = tube_addr[4];
 
 	/*
 	assign b_OSC[33] = b_ITG_SWITCH[0];

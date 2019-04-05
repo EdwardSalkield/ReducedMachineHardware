@@ -46,7 +46,7 @@ module _SEG #(parameter INST_STA = 6'b010100, parameter LINE_LENGTH = 40,
 
 	genvar i;
 	generate for (i=0; i<LINE_LENGTH; i=i+1)
-		assign b_SE[i] = (w_PARA_ACTION & (b_FST == INST_STA)) | (w_KLC & w_HA);
+		assign b_SE[i] = (~w_PARA_ACTION & (b_FST == INST_STA)) | (w_KLC & w_HA);
 	endgenerate
 endmodule
 
